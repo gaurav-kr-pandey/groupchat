@@ -55,7 +55,9 @@
   let currentUser = prompt("Enter your name", "User" + Math.floor(Math.random() * 1000));
   if (!currentUser) currentUser = "Anonymous";
 
-const socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/chat");
+  const socket = new WebSocket(
+    (location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/chat"
+);
 
 
   const chatBox = document.getElementById("chat-box");
