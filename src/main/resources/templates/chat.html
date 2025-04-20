@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>WebSocket Chat</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+        background-color: #f8f9fa;
+    }
+    #chat-box {
+        height: 400px;
+        overflow-y: auto;
+        padding: 10px;
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+    }
+    .message {
+        max-width: 70%;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        border-radius: 15px;
+        word-wrap: break-word;
+    }
+    .sent {
+        background-color: #d1e7dd;
+        align-self: flex-end;
+        margin-left: auto;
+    }
+    .received {
+        background-color: #e2e3e5;
+        align-self: flex-start;
+        margin-right: auto;
+    }
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+<div id="notification-container" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+<div class="container mt-5">
+  <div class="text-center mb-3">
+    <h3>Chat Application</h3>
+  </div>
+  <div id="chat-box" class="chat-container mb-3"></div>
+  <div class="input-group">
+    <input type="text" id="msg" class="form-control" placeholder="Type your message...">
+    <button class="btn btn-primary" id="sendBtn">Send</button>
+  </div>
+</div>
+
+<script>
+  let currentUser = prompt("Enter your name", "User" + Math.floor(Math.random() * 1000));
+  if (!currentUser) currentUser = "Anonymous";
+
+const socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/chat");
+
+
+  const chatBox = document.getElementById("chat-box");
+  const input = document.getElementById("msg");
+  const sendBtn = document.getElementById("sendBtn");
+
+  socket.onopen = function () {
+      socket.send(`__JOIN__:${currentUser}`);
+  };
+
+  socket.onmessage = function (event) {
+      const msg = event.data;
+
+      if (msg.startsWith("__JOIN__:")) {
+          const joinedUser = msg.split(":")[1];
+          showJoinNotification(joinedUser);
+          return;
+      }
+
+      const senderName = msg.split(":")[0];
+      const isSender = senderName === currentUser;
+
+      const messageDiv = document.createElement("div");
+      messageDiv.classList.add("message", isSender ? "sent" : "received");
+      messageDiv.textContent = msg;
+      chatBox.appendChild(messageDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+  };
+
+  function sendMessage() {
+      const text = input.value.trim();
+      if (text !== "") {
+          const fullMessage = `${currentUser}: ${text}`;
+          socket.send(fullMessage);
+          input.value = "";
+      }
+  }
+
+  input.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+          sendMessage();
+      }
+  });
+
+  sendBtn.addEventListener("click", sendMessage);
+
+  function showJoinNotification(username) {
+    const notificationContainer = document.getElementById("notification-container");
+
+    const alertDiv = document.createElement("div");
+    alertDiv.className = "alert alert-success alert-dismissible fade show shadow";
+    alertDiv.role = "alert";
+    alertDiv.innerHTML = `
+        <strong>${username}</strong> joined the chat 🎉
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+
+    notificationContainer.appendChild(alertDiv);
+
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+        alertDiv.classList.remove("show");
+        alertDiv.classList.add("hide");
+        setTimeout(() => alertDiv.remove(), 300);
+    }, 10000);
+}
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
